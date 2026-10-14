@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "ChatGPT 网页侧栏",
+  "version": "0.3.0",
+  "description": "在 Chrome 原生侧栏中加载 ChatGPT 网页，沿用当前浏览器配置中的网站登录态。",
+  "minimum_chrome_version": "116",
+  "permissions": ["sidePanel", "declarativeNetRequestWithHostAccess", "activeTab", "storage", "scripting"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": { "default": "Ctrl+G" }
+    },
+    "send-current-link": {
+      "suggested_key": { "default": "Alt+G" },
+      "description": "打开 ChatGPT 侧栏并填入当前网页链接"
+    },
+    "new-chat": {
+      "suggested_key": { "default": "Ctrl+Shift+G" },
+      "description": "在 ChatGPT 侧栏新建对话"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["src/content/selection-button.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["src/content/chatgpt-content.js"],
+      "all_frames": true,
+      "run_at": "document_idle"
+    }
+  ],
+  "background": { "service_worker": "src/background.js" },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_title": "打开 ChatGPT 网页侧栏",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "side_panel": { "default_path": "src/panel/sidepanel.html" },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; frame-src https://chatgpt.com https://*.chatgpt.com https://auth.openai.com https://auth0.openai.com; base-uri 'self';"
+  }
+}

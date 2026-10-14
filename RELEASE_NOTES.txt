@@ -1,0 +1,19 @@
+中文
+
+打开 ChatGPT 原网页侧栏，按需填入当前链接或选中文字，并恢复本次浏览器会话中的对话地址和文字草稿。
+
+安装：下载 chatgpt-chrome-sidepanel-v0.3.0.zip，解压，在 chrome://extensions 开启开发者模式，点击“加载已解压的扩展程序”，选择包含 manifest.json 的文件夹。无需构建。
+
+快捷键：Ctrl+G 开关；Alt+G 传链接；Ctrl+Shift+G 新对话。内容只填入草稿，不自动发送。
+
+此版本为预发布。部分网站的划词和真实 ChatGPT 页面兼容性仍待验收。使用前请阅读 README 的权限与安全说明。
+
+English
+
+Open the ChatGPT website in Chrome's side panel, add the current URL or selected text to your draft, and restore the conversation URL and text draft within the current browser session.
+
+Install: download chatgpt-chrome-sidepanel-v0.3.0.zip, extract it, enable Developer mode at chrome://extensions, choose Load unpacked, and select the folder containing manifest.json. No build required.
+
+Shortcuts: Ctrl+G toggles the panel; Alt+G adds the URL; Ctrl+Shift+G starts a new chat. Content is added to the draft, never sent automatically.
+
+This is a prerelease. Selection support on some sites and compatibility with the real ChatGPT website still need validation. Read the permissions and security notes in the README before use.
