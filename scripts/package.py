@@ -16,7 +16,7 @@ def build(tag=None):
     if tag and tag != f'v{version}':
         raise ValueError(f'Tag {tag} does not match manifest version v{version}')
     files = {Path(name) for name in ['manifest.json', 'README.md', 'LICENSE', 'THIRD_PARTY_NOTICES.txt']}
-    for directory in ['src', 'icons']:
+    for directory in ['src', 'icons', 'assets']:
         files.update(file.relative_to(ROOT) for file in (ROOT / directory).rglob('*') if file.is_file())
     required = [manifest['background']['service_worker'], manifest['side_panel']['default_path']]
     required += list(manifest['icons'].values())
