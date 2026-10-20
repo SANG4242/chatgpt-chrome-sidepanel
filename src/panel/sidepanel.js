@@ -1,10 +1,42 @@
 const frame = document.getElementById('chatgpt');
+const refreshButton = document.getElementById('refresh');
+const loadStatus = document.getElementById('load-status');
+const errorMessage = document.getElementById('error');
 const channel = 'chatgpt-sidepanel-context';
 let windowId;
 let state;
 let bridgeReady = false;
 let fetching = false;
 let fetchAgain = false;
+let opening = false;
+let loadTimer;
+
+function showError(message, hideFrame = false) {
+  clearTimeout(loadTimer);
+  loadTimer = undefined;
+  loadStatus.textContent = '加载未完成';
+  errorMessage.textContent = message;
+  errorMessage.hidden = false;
+  if (hideFrame) frame.hidden = true;
+}
+
+function startLoading() {
+  clearTimeout(loadTimer);
+  bridgeReady = false;
+  frame.hidden = false;
+  errorMessage.hidden = true;
+  loadStatus.textContent = '正在加载 ChatGPT…';
+  loadTimer = setTimeout(() => {
+    showError('ChatGPT 加载超过 30 秒。请点击上方的刷新按钮重试；若持续转圈，请在普通标签页完成登录或验证后重试。');
+  }, 30000);
+}
+
+function finishLoading() {
+  clearTimeout(loadTimer);
+  loadTimer = undefined;
+  errorMessage.hidden = true;
+  loadStatus.textContent = 'ChatGPT 已就绪';
+}
 
 function tellFrame(message) {
   frame.contentWindow.postMessage({ channel, ...message }, 'https://chatgpt.com');
@@ -12,9 +44,15 @@ function tellFrame(message) {
 
 function loadState(nextState) {
   state = nextState;
-  bridgeReady = false;
+  startLoading();
   frame.src = state.url;
 }
+
+refreshButton.addEventListener('click', () => {
+  if (opening) return;
+  if (state) loadState({ ...state });
+  else openChatGPT();
+});
 
 async function deliverContext() {
   if (!bridgeReady || !Number.isInteger(windowId)) return;
@@ -39,6 +77,7 @@ window.addEventListener('message', event => {
     tellFrame({ type: 'restore', state });
   } else if (message.type === 'restored' && message.revision === state.revision) {
     bridgeReady = true;
+    finishLoading();
     deliverContext();
   } else if (message.type === 'state' && message.revision === state.revision) {
     state = { ...state, url: message.url, draft: message.draft, fresh: false };
@@ -49,6 +88,8 @@ window.addEventListener('message', event => {
 });
 
 frame.addEventListener('load', () => {
+  if (!state) return;
+  if (loadTimer === undefined) startLoading();
   bridgeReady = false;
   tellFrame({ type: 'hello' });
 });
@@ -60,6 +101,11 @@ chrome.runtime.onMessage.addListener(message => {
 });
 
 async function openChatGPT() {
+  if (opening) return;
+  opening = true;
+  refreshButton.disabled = true;
+  errorMessage.hidden = true;
+  loadStatus.textContent = '正在准备…';
   try {
     const result = await chrome.runtime.sendMessage({ type: 'prepare-panel' });
     if (!result?.ok) throw new Error(result?.error || '扩展后台未就绪');
@@ -68,10 +114,10 @@ async function openChatGPT() {
     if (!saved?.ok) throw new Error(saved?.error || '无法恢复侧栏');
     loadState(saved.state);
   } catch (error) {
-    frame.hidden = true;
-    const message = document.getElementById('error');
-    message.textContent = `无法打开侧栏：${error.message || String(error)}`;
-    message.hidden = false;
+    showError(`无法打开侧栏：${error.message || String(error)}`, true);
+  } finally {
+    opening = false;
+    refreshButton.disabled = false;
   }
 }
 

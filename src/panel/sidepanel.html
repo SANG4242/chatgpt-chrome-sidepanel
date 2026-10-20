@@ -8,6 +8,16 @@
   <script src="sidepanel.js" defer></script>
 </head>
 <body>
+  <header class="toolbar">
+    <span id="load-status" role="status" aria-live="polite">正在准备…</span>
+    <button id="refresh" type="button" title="刷新当前 ChatGPT 网页" aria-label="刷新当前 ChatGPT 网页" disabled>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M20 7v5h-5"></path>
+        <path d="M20 12a8 8 0 1 0-2.3 5.7M20 7l-2.3-2.3"></path>
+      </svg>
+      <span>刷新</span>
+    </button>
+  </header>
   <iframe id="chatgpt" title="ChatGPT" allow="clipboard-write" referrerpolicy="no-referrer"></iframe>
   <p id="error" role="alert" hidden></p>
 </body>

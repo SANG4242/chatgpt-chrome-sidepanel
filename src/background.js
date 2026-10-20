@@ -18,7 +18,7 @@ async function configureExtension() {
       },
       condition: {
         requestDomains: ['chatgpt.com'],
-        initiatorDomains: [chrome.runtime.id],
+        topDomains: [chrome.runtime.id],
         resourceTypes: ['sub_frame']
       }
     }]

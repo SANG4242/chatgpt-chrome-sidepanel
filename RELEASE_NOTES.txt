@@ -1,19 +1,37 @@
+v0.3.1
+
 中文
 
-打开 ChatGPT 原网页侧栏，按需填入当前链接或选中文字，并恢复本次浏览器会话中的对话地址和文字草稿。
+需要 Chrome 145 或更新版本。
 
-安装：下载 chatgpt-chrome-sidepanel-v0.3.0.zip，解压，在 chrome://extensions 开启开发者模式，点击“加载已解压的扩展程序”，选择包含 manifest.json 的文件夹。
+更新内容：
+- 增加侧栏刷新按钮、加载状态和 30 秒超时提示，刷新时恢复当前对话与已记录草稿。
+- 修复登录后页面自行跳转时的嵌入兼容规则，处理范围限定于顶层为本扩展的 ChatGPT 内嵌页面。
+- 修复多行草稿恢复后空行增加，以及含缩进或特殊空格的划词内容重复追加。
+- 单个填入操作只尝试写入一次，写入后等待确认；超时停止，重复消息保持同一结果。
+
+安装：下载 chatgpt-chrome-sidepanel-v0.3.1.zip，解压，在 chrome://extensions 开启开发者模式，点击“加载已解压的扩展程序”，选择包含 manifest.json 的文件夹。
+
+更新：先保存未发送草稿，关闭侧栏，将新版文件覆盖到原安装目录，在 chrome://extensions 点击重新加载，再刷新需要划词的普通网页。扩展管理页应显示 0.3.1。
 
 快捷键：Ctrl+G 开关；Alt+G 传链接；Ctrl+Shift+G 新对话。内容追加到草稿，由你确认后发送。
 
-此版本为预发布。部分网站的划词和真实 ChatGPT 页面兼容性仍待验收。使用前请阅读 README 的权限与安全说明。
+使用前请阅读 README 的权限与安全说明。ChatGPT 页面更新可能影响兼容性。
 
 English
 
-Open the ChatGPT website in Chrome's side panel, add the current URL or selected text to your draft, and restore the conversation URL and text draft within the current browser session.
+Requires Chrome 145 or newer.
 
-Install: download chatgpt-chrome-sidepanel-v0.3.0.zip, extract it, enable Developer mode at chrome://extensions, choose Load unpacked, and select the folder containing manifest.json.
+Changes:
+- Add a refresh button, loading status, and a 30-second loading warning. Refresh restores the current conversation and recorded text draft.
+- Fix embedding rules for navigation initiated by the signed-in page, scoped to ChatGPT subframes under this extension's top-level origin.
+- Fix extra blank lines after draft restoration and repeated insertion of selected text containing indentation or special spaces.
+- Attempt each insertion once, then wait for confirmation. Stop after a confirmation timeout and retain the result for duplicate messages.
+
+Install: download chatgpt-chrome-sidepanel-v0.3.1.zip, extract it, enable Developer mode at chrome://extensions, choose Load unpacked, and select the folder containing manifest.json.
+
+Update: save unsent drafts, close the panel, replace the files in the existing installation folder, reload the extension at chrome://extensions, and refresh regular pages where you use text selection. The extension page should show 0.3.1.
 
 Shortcuts: Ctrl+G toggles the panel; Alt+G adds the URL; Ctrl+Shift+G starts a new chat. Content is added to the draft for you to review and send.
 
-This is a prerelease. Selection support on some sites and compatibility with the real ChatGPT website still need validation. Read the permissions and security notes in the README before use.
+Read the permissions and security notes in the README before use. Changes to the ChatGPT website may affect compatibility.

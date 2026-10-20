@@ -4,10 +4,13 @@
   const extensionOrigin = chrome.runtime.getURL('').replace(/\/$/, '');
   const pending = new Map();
   const completed = new Set();
+  const failed = new Map();
+  const confirmationTimeout = 1500;
   let connected = false;
   let timer;
   let revision;
   let restore;
+  let restoreFailure;
   let lastSnapshot = '';
 
   function reply(message) {
@@ -18,19 +21,49 @@
     return document.querySelector('#prompt-textarea[contenteditable="true"], textarea#prompt-textarea, .ProseMirror[contenteditable="true"]');
   }
 
+  const blockTags = new Set(['P', 'DIV', 'LI', 'PRE', 'BLOCKQUOTE', 'UL', 'OL', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6']);
+
+  function readEditable(node) {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent;
+    if (node.nodeName === 'BR') return '\n';
+    let text = '';
+    let seen = false;
+    let previousBlock = false;
+    let previousBreak = false;
+    for (const child of node.childNodes) {
+      if (child.nodeType !== Node.TEXT_NODE && child.nodeType !== Node.ELEMENT_NODE) continue;
+      if (child.nodeType === Node.TEXT_NODE && !child.textContent) continue;
+      const block = blockTags.has(child.nodeName);
+      if (seen && (previousBlock || block) && !previousBreak) text += '\n';
+      text += readEditable(child);
+      seen = true;
+      previousBlock = block;
+      previousBreak = child.nodeName === 'BR';
+    }
+    if (node.lastChild?.nodeName === 'BR') text = text.slice(0, -1);
+    return text;
+  }
+
   function readText(editor) {
-    return editor.tagName === 'TEXTAREA' ? editor.value : editor.innerText;
+    return editor.tagName === 'TEXTAREA' ? editor.value : readEditable(editor);
+  }
+
+  function comparableText(text) {
+    return text.replace(/\r\n?/g, '\n').replace(/\u00a0/g, ' ');
   }
 
   function containsText(value, text) {
-    const normalize = input => input.replace(/\r\n/g, '\n').replace(/\n{2,}/g, '\n\n');
+    const normalize = input => comparableText(input).replace(/\n{2,}/g, '\n\n');
     return normalize(value).includes(normalize(text));
   }
 
+  function matchesText(editor, text, replace) {
+    const actual = readText(editor);
+    return replace ? comparableText(actual) === comparableText(text) : containsText(actual, text);
+  }
+
   function writeText(editor, text, replace = false) {
-    if (editor.disabled || editor.getAttribute('aria-disabled') === 'true') return false;
     const existing = readText(editor);
-    if (!replace && containsText(existing, text)) return true;
     const addition = replace ? text : `${existing.trim() ? '\n\n' : ''}${text}`;
     editor.focus();
     if (editor.tagName === 'TEXTAREA') {
@@ -45,9 +78,23 @@
       if (!replace) range.collapse(false);
       selection.removeAllRanges();
       selection.addRange(range);
-      if (!document.execCommand('insertText', false, addition)) return false;
+      document.execCommand('insertText', false, addition);
     }
-    return text ? containsText(readText(editor), text) : readText(editor) === '';
+  }
+
+  function confirmText(editor, operation, text, replace = false) {
+    if (matchesText(editor, text, replace)) return 'confirmed';
+    if (operation.attemptedAt === undefined) {
+      if (editor.disabled || editor.getAttribute('aria-disabled') === 'true') return 'waiting';
+      operation.attemptedAt = Date.now();
+      try {
+        writeText(editor, text, replace);
+      } catch (error) {
+        operation.error = error.message || String(error);
+      }
+      if (matchesText(editor, text, replace)) return 'confirmed';
+    }
+    return Date.now() - operation.attemptedAt >= confirmationTimeout ? 'failed' : 'waiting';
   }
 
   function publishState(force = false) {
@@ -65,12 +112,16 @@
   function flush() {
     clearTimeout(timer);
     const editor = findEditor();
+    if (restoreFailure) return;
     if (restore && editor) {
       const saved = restore;
-      if (saved.fresh) {
-        if (!writeText(editor, '', true)) { timer = setTimeout(flush, 300); return; }
-      } else if (saved.draft && !writeText(editor, saved.draft, true)) {
-        timer = setTimeout(flush, 300);
+      const result = saved.fresh || saved.draft ? confirmText(editor, saved, saved.fresh ? '' : saved.draft, true) : 'confirmed';
+      if (result === 'waiting') { timer = setTimeout(flush, 300); return; }
+      if (result === 'failed') {
+        restoreFailure = { revision: saved.revision, error: '未能确认草稿恢复，已停止自动重试。' };
+        restore = null;
+        console.error(restoreFailure.error);
+        reply({ type: 'restore-failed', ...restoreFailure });
         return;
       }
       revision = saved.revision;
@@ -83,10 +134,18 @@
     }
     if (!restore && editor && revision) {
       for (const [id, item] of pending) {
-        if (!writeText(editor, item.text)) break;
+        const result = confirmText(editor, item, item.text);
+        if (result === 'waiting') break;
         pending.delete(id);
-        completed.add(id);
-        reply({ type: 'inserted', id });
+        if (result === 'failed') {
+          const error = '未能确认文字填入，已停止自动重试。';
+          failed.set(id, error);
+          console.error(error);
+          reply({ type: 'insert-failed', id, error });
+        } else {
+          completed.add(id);
+          reply({ type: 'inserted', id });
+        }
         publishState(true);
       }
     }
@@ -103,16 +162,22 @@
     }
     if (message.type === 'restore' && typeof message.state?.revision === 'string') {
       connected = true;
-      if (revision === message.state.revision) {
+      if (restoreFailure?.revision === message.state.revision) {
+        reply({ type: 'restore-failed', ...restoreFailure });
+      } else if (revision === message.state.revision) {
         reply({ type: 'restored', revision });
       } else {
-        restore = message.state;
+        if (restore?.revision !== message.state.revision) {
+          restore = { ...message.state };
+          restoreFailure = null;
+        }
         flush();
       }
       return;
     }
     if (!connected || message.type !== 'insert' || typeof message.id !== 'string' || typeof message.text !== 'string') return;
     if (completed.has(message.id)) { reply({ type: 'inserted', id: message.id }); return; }
+    if (failed.has(message.id)) { reply({ type: 'insert-failed', id: message.id, error: failed.get(message.id) }); return; }
     if (!pending.has(message.id)) pending.set(message.id, { text: message.text, createdAt: Date.now() });
     flush();
   });

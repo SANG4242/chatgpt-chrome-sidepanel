@@ -45,7 +45,7 @@ jobs:
         env:
           TAG: ${{ github.ref_name }}
         run: python scripts/package.py --tag "$TAG"
-      - name: Publish prerelease
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -53,6 +53,7 @@ jobs:
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/*.zip dist/SHA256SUMS.txt --clobber
+            gh release edit "$TAG" --prerelease=false --latest
           else
-            gh release create "$TAG" dist/*.zip dist/SHA256SUMS.txt --verify-tag --prerelease --title "$TAG" --notes-file RELEASE_NOTES.txt
+            gh release create "$TAG" dist/*.zip dist/SHA256SUMS.txt --verify-tag --latest --title "$TAG" --notes-file RELEASE_NOTES.txt
           fi

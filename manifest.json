@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "ChatGPT 网页侧栏",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "在 Chrome 原生侧栏中加载 ChatGPT 网页，沿用当前浏览器配置中的网站登录态。",
-  "minimum_chrome_version": "116",
+  "minimum_chrome_version": "145",
   "permissions": ["sidePanel", "declarativeNetRequestWithHostAccess", "activeTab", "storage", "scripting"],
   "host_permissions": ["http://*/*", "https://*/*"],
   "commands": {
